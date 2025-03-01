@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Code Edit - CODIT/CODIN</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            height: 100vh;
+            background-color: #1e1e1e;
+            margin: 0;
+            color: white;
+        }
+
+        .editor-container {
+            position: relative;
+            width: 600px;
+        }
+
+        textarea, pre {
+            width: 100%;
+            height: 300px;
+            padding: 10px;
+            border-radius: 5px;
+            font-size: 14px;
+            font-family: monospace;
+            line-height: 1.5;
+        }
+
+        textarea {
+            position: absolute;
+            top: 0;
+            left: 0;
+            background: transparent;
+            color: transparent;
+            caret-color: white;
+            border: none;
+            outline: none;
+            resize: none;
+            z-index: 1;
+        }
+
+        pre {
+            background: #282c34;
+            color: white;
+            border: 1px solid #555;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            overflow: auto;
+            pointer-events: none;
+            margin: 0;
+        }
+
+        .output-container {
+            margin-top: 20px;
+            padding: 10px;
+            width: 600px;
+            background: #333;
+            min-height: 100px;
+            border-radius: 5px;
+            border: 1px solid #555;
+            overflow: auto;
+        }
+
+        button {
+            margin-top: 10px;
+            padding: 10px 20px;
+            font-size: 16px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            background-color: #61afef;
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <div class="editor-container">
+        <textarea id="editor"></textarea>
+        <pre id="highlight"><code></code></pre>
+    </div>
+    
+    <button id="run">Run Code</button>
+    <div class="output-container" id="output"></div>
+
+    <script>
+        const editor = document.getElementById("editor");
+        const highlight = document.getElementById("highlight").querySelector("code");
+        const outputDiv = document.getElementById("output");
+        const runButton = document.getElementById("run");
+
+        function escapeHTML(str) {
+            return str.replace(/&/g, "&amp;")
+                      .replace(/</g, "&lt;")
+                      .replace(/>/g, "&gt;")
+                      .replace(/"/g, "&quot;")
+                      .replace(/'/g, "&#39;");
+        }
+
+        function highlightSyntax(code) {
+            code = escapeHTML(code);
+            return code
+                .replace(/(\/\*[\s\S]*?\*\/)/g, '<span style="color: #5c6370; font-style: italic;">$1</span>')  
+                .replace(/(\/\/[^\n]*)/g, '<span style="color: #5c6370; font-style: italic;">$1</span>')       
+                .replace(/("[^"]*"|'[^']*')/g, '<span style="color: #98c379;">$1</span>')   
+                .replace(/\b(\d+(\.\d+)?)\b/g, '<span style="color: #d19a66;">$1</span>')   
+                .replace(/\b(function|const|let|var|if|else|return|for|while|switch|case|break|default|new|class|extends|super|import|export|async|await|try|catch|throw|typeof|instanceof|void)\b/g, '<span style="color: #c678dd; font-weight: bold;">$1</span>')
+                .replace(/\b(console\.log|alert|prompt|document\.querySelector|document\.getElementById)\b/g, '<span style="color: #61afef;">$1</span>') 
+                .replace(/\b(true|false|null|undefined)\b/g, '<span style="color: #56b6c2;">$1</span>'); 
+        }
+
+        function updateHighlight() {
+            let code = editor.value;
+            highlight.innerHTML = highlightSyntax(code) || '<br>';
+        }
+
+        editor.addEventListener("input", updateHighlight);
+        editor.addEventListener("scroll", () => {
+            highlight.parentElement.scrollTop = editor.scrollTop;
+        });
+
+        runButton.addEventListener("click", () => {
+            outputDiv.innerHTML = ""; 
+            try {
+                const userCode = editor.value;
+                const consoleLog = console.log;
+                console.log = (...args) => {
+                    outputDiv.innerHTML += args.map(arg => escapeHTML(String(arg))).join(" ") + "<br>";
+                };
+                
+                new Function(userCode)();
+                console.log = consoleLog;
+            } catch (error) {
+                outputDiv.innerHTML = `<span style="color: red;">${escapeHTML(error.message)}</span>`;
+            }
+        });
+
+        document.addEventListener("keydown", (event) => {
+            if (event.key === "F5") {
+                event.preventDefault();
+                runButton.click();
+            }
+        });
+
+        updateHighlight();
+    </script>
+</body>
+</html>
